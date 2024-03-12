@@ -183,7 +183,9 @@ jobs:
           rules_files=$(ls ${{ steps.get-config.outputs.rules_dir }}/*)
           for rules_file in $rules_files; do
             echo "Rule file: ${rules_file}"
-            deps=$(cat $rules_file | yq -r '.[].required_plugin_versions | select(. != null and . != "")[] | [.name + ":" + .version] | @csv')
+            deps=$(./.github/extract-plugins-deps-from-rulesfile.sh \
+                "${{ inputs.plugin }}" \
+                "$rules_file")
             echo "Deps: ${deps}"
             ver_diff=0
             has_updates=1
