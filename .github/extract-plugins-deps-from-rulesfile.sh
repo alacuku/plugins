@@ -69,7 +69,7 @@ for YAML_FILE in "combined_requirements.yaml"; do
               fi
           done
       fi
-    filtered_entries+=("$name: $version")
+    filtered_entries+=("$name:$version")
   done
 done
 
