@@ -20,7 +20,7 @@ if [ ! -f "$config_file" ]; then
   if [ -d "$rules_dir" ]; then
     echo Extracting plugin dependencies from rules files...
     rules_files=$(ls $rules_dir/*)
-    for rules_file in $rules_files; do
+    for rules_file in "$rules_files"; do
       echo Extracting plugin dependencies from rules file "${rules_file}"...
       rules_deps=$(cat $rules_file | yq -r '.[].required_plugin_versions | select(. != null and . != "")[] | [.name + ":" + .version] | @csv')
       for dep in $rules_deps; do
