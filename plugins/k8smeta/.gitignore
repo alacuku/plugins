@@ -1,6 +1,0 @@
-*.so
-*.a
-*.o
-.vscode
-build*
-libk8smeta.so
