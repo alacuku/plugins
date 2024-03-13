@@ -178,11 +178,9 @@ jobs:
           sudo mkdir -p /usr/share/falco/plugins
 
           rules_files=$(ls ${{ steps.get-config.outputs.rules_dir }}/*)
-          for rules_file in $rules_files; do
-            echo "Rule file: ${rules_file}"
             deps=$(./.github/extract-plugins-deps-from-rulesfile.sh \
                 "${{ inputs.plugin }}" \
-                "$rules_file")
+                "$rules_files")
             echo "Deps: ${deps}"
             ver_diff=0
             has_updates=1
@@ -224,6 +222,5 @@ jobs:
                 "${{ inputs.falco-image }}" \
                 "${{ inputs.rules-checker }}" \
                 "${{ steps.get-config.outputs.config_file }}" \
-                "$rules_file"
+                "$rules_files"
             done 
-          done
