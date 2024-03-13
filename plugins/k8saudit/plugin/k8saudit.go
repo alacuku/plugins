@@ -28,6 +28,7 @@ func init() {
 	plugins.SetFactory(func() plugins.Plugin {
 		p := &k8saudit.Plugin{}
 		source.Register(p)
+
 		extractor.Register(p)
 		return p
 	})
