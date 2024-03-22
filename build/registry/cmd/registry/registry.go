@@ -21,6 +21,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"github.com/falcosecurity/plugins/build/registry/pkg/reqs"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -105,6 +106,7 @@ func main() {
 	rootCmd.AddCommand(tableCmd)
 	rootCmd.AddCommand(updateIndexCmd)
 	rootCmd.AddCommand(updateOCIRegistry)
+	rootCmd.AddCommand(reqs.NewReqsCmd())
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Printf("error: %s\n", err)

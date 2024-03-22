@@ -16,6 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       package: ${{ steps.regex-match.outputs.group1 }}
+      version: "${{ steps.regex-match.outputs.group2 }}.${{ steps.regex-match.outputs.group3 }}.${{ steps.regex-match.outputs.group4 }}"
       
     steps:
       - name: Extract semver ℹ️
@@ -54,3 +55,63 @@ jobs:
       plugins-artifact: plugins-x86_64-stable.tar.gz
       rules-checker: ./rules-checker
       arch: x86_64
+
+  push-oci-artifacts:
+    needs: [validate-plugins, extract-info]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup Go
+        uses: actions/setup-go@0c52d547c9bc32b1aa3301fd7a9cb496313a4491 # v5.0.0
+        with:
+          go-version: '1.21'
+          check-latest: true
+
+      - name: Checkout commit
+        uses: actions/checkout@9bb56186c3b09b4f86b1c65136769dd318469633 # v4.1.2
+        with:
+          fetch-depth: 0
+
+      - name: Build registry tool
+        working-directory: build/registry
+        run: go build -o registry cmd/registry/registry.go
+
+      - name: Download x86_64 plugins
+        uses: actions/download-artifact@v3
+        with:
+          name: plugins-x86_64-stable.tar.gz
+          path: /tmp/plugins-x86_64
+
+      #- name: Download aarch64 plugins
+      #  uses: actions/download-artifact@v3
+      #  with:
+      #    name: plugins-aarch64-stable.tar.gz
+      #    path: /tmp/plugins-aarch64
+
+      - name: Extract requirements from plugin
+        id: requirement
+        run: echo "req=$(./build/registry/registry reqs /tmp/plugins-x86_64/${{ github.ref_name }}-linux-x86_64.tar.gz --type plugin)" >> $GITHUB_OUTPUT
+
+      - name: Install falcoctl tool
+        run: |
+          go install github.com/falcosecurity/falcoctl@main
+
+      - name: Login to ghcr.io registry
+        uses: docker/login-action@e92390c5fb421da1463c202d546fed0ec5c39f20 # v3.1.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push plugin
+        id: plugin_artifact
+        run: |
+          sudo mkdir /etc/falcoctl
+          sudo chmod 777 /etc/falcoctl
+          falcoctl registry push \
+            ghcr.io/alacuku/plugins/plugin/${{ needs.extract-info.outputs.package }}:${{ needs.extract-info.outputs.version }} \
+            --version ${{ needs.extract-info.outputs.version }} \
+            /tmp/plugins-x86_64/${{ github.ref_name }}-linux-x86_64.tar.gz --platform linux/amd64 \
+            --requires ${{ steps.requirement.outputs.req }} \
+            --tag latest \
+            --type plugin
+# /tmp/plugins-aarch64/${{ github.ref_name }}-linux-aarch64.tar.gz --platform linux/arm64 \
