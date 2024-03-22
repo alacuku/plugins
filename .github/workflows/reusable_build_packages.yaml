@@ -14,10 +14,10 @@ on:
 jobs:
   build-packages:
     name: build-packages-${{ matrix.arch }}
-    runs-on: ${{ (matrix.arch == 'aarch64' && 'actuated-arm64-8cpu-16gb') || 'ubuntu-22.04' }}
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
-        arch: [x86_64, aarch64]
+        arch: [x86_64]
     container: golang:1.21
     steps:
       - name: Install deps
