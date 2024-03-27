@@ -1,0 +1,95 @@
+on:
+  workflow_call:
+    inputs:
+      dev-tag:
+        description: The tag used for oci artifacts published from the main branch.
+        required: false
+        type: string
+
+jobs:
+  publish-oci-artifacts:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
+
+    outputs:
+      matrix: ${{ steps.oci_build.outputs.REGISTRY_UPDATE_STATUS }}
+
+    steps:
+      - name: Download x86_64 plugins
+        uses: actions/download-artifact@v3
+        with:
+          name: plugins-x86_64-${{ inputs.suffix }}.tar.gz
+          path: /tmp/plugins-x86_64
+
+      - name: Download aarch64 plugins
+        uses: actions/download-artifact@v3
+        with:
+          name: plugins-aarch64-${{ inputs.suffix }}.tar.gz
+          path: /tmp/plugins-aarch64
+
+      - name: Checkout Plugins
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Setup Golang
+        uses: actions/setup-go@v3
+        with:
+          go-version: '^1.21'
+
+      - name: Build registry artifact tool
+        working-directory: build/registry
+        run: make
+
+      - name: Upload OCI artifacts to GitHub packages
+        id: oci_build
+        env:
+          REGISTRY: ghcr.io
+          REGISTRY_USER: ${{ github.repository_owner }}
+          REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO_GITHUB: https://github.com/${{ github.repository_owner }}/plugins.git
+        working-directory: build/registry
+        run: |
+          REGISTRY_UPDATE_STATUS=$(./bin/registry update-oci-registry \
+             ../../registry.yaml \
+             --plugins-amd64-path /tmp/plugins-x86_64 \
+             --plugins-arm64-path /tmp/plugins-aarch64
+             --rulesfiles-path /tmp/plugins-x86_64 \
+             --dev-tag ${{ inputs.dev-tag }}
+          )
+          echo "REGISTRY_UPDATE_STATUS=${REGISTRY_UPDATE_STATUS}" >> $GITHUB_OUTPUT
+
+  # Create signatures of the plugin artifacts as OCI artifacts
+  sign-oci-artifacts:
+    needs: [ publish-oci-artifacts ]
+    runs-on: ubuntu-latest
+
+    if: ${{ needs.publish-oci-artifacts.outputs.matrix != '[]' }}
+    strategy:
+      matrix:
+        value: ${{ fromJson(needs.publish-oci-artifacts.outputs.matrix) }}
+
+    permissions:
+      contents: read
+      id-token: write
+      packages: write
+
+    steps:
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3.1.0
+        with:
+          cosign-release: 'v2.1.0'
+      - run: cosign version
+
+      - name: Log into ghcr.io
+        uses: docker/login-action@master
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Sign the artifacts with GitHub OIDC Token
+        run: cosign sign --yes ${{ matrix.value.repository.ref }}@${{ matrix.value.artifact.digest }}
