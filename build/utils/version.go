@@ -200,7 +200,7 @@ func main() {
 
 	} else {
 		// stable versions MUST have a precise tag matching plugin name and version
-		expectedTag := name + "-" + version
+		expectedTag := "plugins/" + name + "/v" + version
 		tags, err := git("--no-pager", "tag", "--points-at", "HEAD")
 		if err != nil {
 			fail(err)
