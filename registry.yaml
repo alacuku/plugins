@@ -405,7 +405,7 @@ plugins:
       extraction:
         supported: true
         sources: [syscall]
-  - name: k8saudit-gke
+  - name: k8saudit-gke-test
     description: Read Kubernetes Audit Events from GKE Clusters
     authors: The Falco Authors
     contact: https://falco.org/community
