@@ -21,6 +21,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"github.com/falcosecurity/plugins/build/registry/cmd/validateRegistry"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -117,6 +118,7 @@ func main() {
 	rootCmd.AddCommand(tableCmd)
 	rootCmd.AddCommand(updateIndexCmd)
 	rootCmd.AddCommand(updateOCIRegistry)
+	rootCmd.AddCommand(validateRegistry.NewValidateRegistry(context.Background()))
 
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Printf("error: %s\n", err)
